@@ -8,23 +8,28 @@ mapUI <- function(id) {
 }
 
 
-mapServer <- function(id, dataset, address, state, 
-                      hcf_category, hcf_func_status, action_btn) {
+mapServer <- function(id, dataset, searchVals) {
   
   moduleServer(
     id,
     function(input, output, session) {
       
-     m <- eventReactive(action_btn, {
-
-          national_hcf_filtered <- dataset() |> 
-            filter(state_name == state, 
-                   category == hcf_category, 
-                   functional_status == hcf_func_status) |> 
-            select(latitude, longitude,name) |> 
-            rowid_to_column(var = "hcf_id")
-          
-
+      m <- reactive({
+        req(!is.null(dataset()), !is.null(searchVals()))
+        
+        state   = searchVals()$state
+        address = searchVals()$address
+        hcf_category = searchVals()$fac_category
+        hcf_func_status = searchVals()$func_status
+        
+        national_hcf_filtered <- dataset() |> 
+          filter(state_name == state, 
+                 category == hcf_category, 
+                 functional_status == hcf_func_status) |> 
+          select(latitude, longitude,name) |> 
+          rowid_to_column(var = "hcf_id")
+        
+        
         # * Geocoding: Address -> Lat Long ----
         
         # convert address to geometry
@@ -38,7 +43,7 @@ mapServer <- function(id, dataset, address, state,
                         method = "arcgis")) |> 
           rowid_to_column(var = "inc_id")
         
-         
+        
         
         # 3.0 NEAREST NEIGHBORS ----
         # * Alternatively we can use sfnetworks
@@ -62,12 +67,12 @@ mapServer <- function(id, dataset, address, state,
             progress = T
           )
         }
-  
+        
         network_lines_sf <-st_connect(
-            x = inc_locations_latlon_tbl_sf, 
-            y = national_hcf_filtered, 
-            ids = network_ids
-          )
+          x = inc_locations_latlon_tbl_sf, 
+          y = national_hcf_filtered, 
+          ids = network_ids
+        )
         
         m <- mapview(
           national_hcf_filtered[unlist(network_ids),], 
@@ -87,13 +92,13 @@ mapServer <- function(id, dataset, address, state,
             network_lines_sf,
             color      = "yellow"
           )
-        m
+        
       })
       
       output$nnHCF <- renderLeaflet({
+        
         m()@map
       })
     }
   )
 }
-

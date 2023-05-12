@@ -16,7 +16,7 @@ library(tidyverse)  # Core tidy libs
 # selectIput data
 selectInput_data <- readRDS(file = "data/select_item_data.rds")
 hcf_f_status <- readRDS("data/func_status.rds")
-sf_tbl = sf::st_read("data/national-health-care-facilities/health-care-facilities-primary-secondary-and-tertiary.geojson")
+sf_tbl = sf::st_read("data/health-care-facilities-primary-secondary-and-tertiary.geojson")
 
 ui <- shiny::fluidPage(
   
@@ -36,7 +36,7 @@ ui <- shiny::fluidPage(
     
     mainPanel(
       
-      mapUI("map")
+      mapUI("er_map")
     )
   )
 )
@@ -48,23 +48,18 @@ server <- function(input, output, session) {
   df_data <- uploadServer(id = "upload")
   
   searchVals <- searchServer(id = "search")
-
+  
   # address,state,fac_category,func_status,action_btn
   # dataset, address, state, hcf_category, hcf_func_status, action_btn
   mapServer(id = "er_map", 
-            dataset = df_data(),
-            state   = searchVals$state,
-            address = searchVals$address,
-            hcf_category = searchVals$fac_category,
-            hcf_func_status = searchVals$func_status,
-            action_btn = searchVals$action_btn
-            )
+            dataset = df_data,
+            searchVals = searchVals
+  )
   
 }
 
 
 shinyApp(ui = ui, server = server)
-
 
 
 
